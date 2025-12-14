@@ -1,5 +1,4 @@
-﻿#if !MIG_FREE
-using ICSharpCode.AvalonEdit.Highlighting;
+﻿using ICSharpCode.AvalonEdit.Highlighting;
 using MdXaml.SyntaxHigh.Ext;
 using MdXaml.Ext;
 using NUnit.Framework;
@@ -63,4 +62,3 @@ namespace MdXaml.Test
         }
     }
 }
-#endif

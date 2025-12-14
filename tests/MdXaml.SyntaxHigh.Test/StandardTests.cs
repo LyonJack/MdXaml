@@ -14,11 +14,7 @@ using System.Windows.Markup;
 using System.Windows.Threading;
 
 
-#if !MIG_FREE
 namespace MdXaml.Test
-#else
-namespace Markdown.Xaml.Test
-#endif
 {
     [UseReporter(typeof(DiffReporter))]
     public class StandardTests
@@ -26,12 +22,7 @@ namespace Markdown.Xaml.Test
         static StandardTests()
         {
             var fwNm = Utils.GetRuntimeName();
-#if !MIG_FREE
-
             Approvals.RegisterDefaultNamerCreation(() => new ChangeOutputPathNamer("Out/" + fwNm));
-#else
-            Approvals.RegisterDefaultNamerCreation(() => new ChangeOutputPathNamer("OutMF/"+ fwNm));
-#endif
         }
 
         readonly string assetPath;
