@@ -11,7 +11,7 @@
         Title="VisualTestApp.MainWindow" Height="450" Width="800">
 
     <Window.DataContext>
-        <local:MainWIndowViewModel/>
+        <local:MainWindowViewModel/>
     </Window.DataContext>
 
     <DockPanel LastChildFill="True">

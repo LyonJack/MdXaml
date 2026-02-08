@@ -15,12 +15,12 @@ significant difference: Instead of rendering to a string containing HTML, it ren
 suitable for embedding into a WPF window or usercontrol.
 
 With HTML output, details of fonts and colours (and so on) are handled by CSS, but with a 
-FlowDocument there's no direct equivalent. Instead of the HTML approch of linking a 
+FlowDocument there's no direct equivalent. Instead of the HTML approach of linking a 
 stylesheet to the rendered output, MarkDown.Xaml uses WPF styles that are linked to
 the rendering engine and applied to the output as it is generated. See the *included demo* 
 application for an example of how this can be configured.
 
-## Samle
+## Sample
 
 ![sc1](docs/img.demo/sc1.png)
 ![sc2](docs/img.demo/sc2.png)

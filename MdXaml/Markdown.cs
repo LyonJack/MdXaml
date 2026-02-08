@@ -1,4 +1,4 @@
-﻿using MdXaml.Plugins;
+using MdXaml.Plugins;
 using System;
 using System.Collections.Generic;
 #if !NETFRAMEWORK
@@ -70,7 +70,10 @@ namespace MdXaml
 
         public bool DisabledTag { get; set; }
 
-        public bool DisabledTootip { get; set; }
+        public bool DisabledTooltip { get; set; }
+
+        [Obsolete("Use DisabledTooltip instead.")]
+        public bool DisabledTootip { get => DisabledTooltip; set => DisabledTooltip = value; }
 
         public bool DisabledLazyLoad { get; set; }
 
@@ -630,7 +633,7 @@ namespace MdXaml
                 result.Click += holder.Clicked;
             }
 
-            if (!DisabledTootip)
+            if (!DisabledTooltip)
             {
                 result.ToolTip = string.IsNullOrWhiteSpace(title) ?
                     url :
@@ -2329,7 +2332,7 @@ namespace MdXaml
         {
             _tag = tag;
             _urlTxt = urlTxt;
-            _tooltipTxt = owner.DisabledTootip ? "" : tooltipTxt;
+            _tooltipTxt = owner.DisabledTooltip ? "" : tooltipTxt;
             _container = container;
             _onSuccess = onSuccess;
 
