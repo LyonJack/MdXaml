@@ -1,8 +1,15 @@
-﻿using System;
+﻿using MdXaml.Plugins;
+using System;
 using System.Collections.Generic;
+#if !NETFRAMEWORK
+using System.Diagnostics.CodeAnalysis;
+#endif
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -11,20 +18,12 @@ using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using MdXaml.Plugins;
-using System.IO;
-using System.Threading.Tasks;
 using System.Windows.Threading;
-using MdXaml.Menus;
-using System.Globalization;
+using static MdXaml.ImageLoaderManager;
 
 // I will not add System.Index and System.Range. There is not exist with net45.
 #pragma warning disable IDE0056
 #pragma warning disable IDE0057
-
-using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.Highlighting;
-using MdXaml.Highlighting;
 
 namespace MdXaml
 {
@@ -43,13 +42,13 @@ namespace MdXaml
         private const string TagHeading5 = "Heading5";
         private const string TagHeading6 = "Heading6";
         private const string TagCode = "CodeSpan";
-        private const string TagCodeBlock = "CodeBlock";
         private const string TagBlockquote = "Blockquote";
         private const string TagNote = "Note";
         private const string TagTableHeader = "TableHeader";
         private const string TagTableBody = "TableBody";
         private const string TagOddTableRow = "OddTableRow";
         private const string TagEvenTableRow = "EvenTableRow";
+        private const string TagCodeBlock = "CodeBlock";
 
         private const string TagBoldSpan = "Bold";
         private const string TagItalicSpan = "Italic";
@@ -151,7 +150,7 @@ namespace MdXaml
             HyperlinkCommand = NavigationCommands.GoToPage;
             AssetPathRoot = Environment.CurrentDirectory;
             LoaderManager = new();
-            Plugins = MdXamlPlugins.Default;
+            Plugins = MdXamlPlugins.Default.Clone();
         }
 
         public FlowDocument Transform(string text)
@@ -216,13 +215,13 @@ namespace MdXaml
 
             // inline parser
 
-            inlines.Add(SimpleInlineParser.New(_codeSpan, CodeSpanEvaluator));
-
             if (_plugins.Syntax.EnableImageResizeExt)
             {
                 inlines.Add(SimpleInlineParser.New(_resizeImage, ImageWithSizeEvaluator));
             }
             inlines.Add(SimpleInlineParser.New(_imageOrHrefInline, ImageOrHrefInlineEvaluator));
+
+            inlines.Add(SimpleInlineParser.New(_codeSpan, CodeSpanEvaluator));
 
             if (StrictBoldItalic)
             {
@@ -237,11 +236,11 @@ namespace MdXaml
             subBlocks.AddRange(_plugins.Block);
             inlines.AddRange(_plugins.Inline);
 
-            var manager = new InternalHighlightManager();
             foreach (var def in _plugins.Highlights)
-                manager.Register(def);
+                foreach (var parser in Plugins?.CodeBlockLoader ?? new())
+                    parser.Register(def);
 
-            ParseParam = new ParseParam(topBlocks, subBlocks, inlines, _plugins.Syntax, manager);
+            ParseParam = new ParseParam(topBlocks, subBlocks, inlines, _plugins.Syntax);
             LoaderManager.Restructure(_plugins);
         }
 
@@ -475,13 +474,19 @@ namespace MdXaml
         #region grammer - image or href
 
         /// <summary>
+        /// Reusable pattern to match not escaped characters
+        /// </summary>
+        private static readonly string _nonescapedPattern =
+                    @"(?<!\\)(?:\\\\)*";
+
+        /// <summary>
         /// Reusable pattern to match balanced [brackets]. See Friedl's 
         /// "Mastering Regular Expressions", 2nd Ed., pp. 328-331.
         /// </summary>
         private static readonly string _nestedBracketsPattern =
                     TextUtil.RepeatString(@"
-                    (?>              # Atomic matching
-                       [^\[\]]+      # Anything other than brackets
+                    (?>                     # Atomic matching
+                       [^\\\[\]]|\\[\s\S]   # Anything other than brackets, unless escaped
                      |
                        \[
                            ", _nestDepth)
@@ -496,8 +501,8 @@ namespace MdXaml
         /// </summary>
         private static readonly string _nestedParensPattern =
                     TextUtil.RepeatString(@"
-                    (?>            # Atomic matching
-                       [^()\n\t]+? # Anything other than parens or whitespace
+                    (?>                 # Atomic matching
+                       [^\\\s()]|\\[\S] # Anything other than parens or whitespace, unless escaped parens
                      |
                        \(
                            ", _nestDepth)
@@ -507,10 +512,11 @@ namespace MdXaml
                     , _nestDepth);
 
         private static readonly Regex _imageOrHrefInline = new(string.Format(@"
+                {2}                         # not escaped
                 (                           # wrap whole match in $1
                     (!)?                    # image maker = $2
                     \[
-                        ({0})               # link text = $3
+                        ({0}|[^\]]*)                # link text = $3
                     \]
                     \(                      # literal paren
                         [ ]*
@@ -523,14 +529,15 @@ namespace MdXaml
                         [ ]*                # ignore any spaces between closing quote and )
                         )?                  # title is optional
                     \)
-                )", _nestedBracketsPattern, _nestedParensPattern),
+                )", _nestedBracketsPattern, _nestedParensPattern, _nonescapedPattern),
                   RegexOptions.Singleline | RegexOptions.IgnorePatternWhitespace | RegexOptions.Compiled);
 
         private static readonly Regex _resizeImage = new(string.Format(@"
+                {2}                         # not escaped
                 (                           # wrap whole match in $1
                     (!)                     # image maker = $2
                     \[
-                        ({0})               # link text = $3
+                        ({0}|[^\]]*)               # link text = $3
                     \]
                     \(                      # literal paren
                         [ ]*
@@ -546,7 +553,7 @@ namespace MdXaml
                     \{{
                         ([^\}}]+)             # size = $8
                     \}}
-                )", _nestedBracketsPattern, _nestedParensPattern),
+                )", _nestedBracketsPattern, _nestedParensPattern, _nonescapedPattern),
                   RegexOptions.Singleline | RegexOptions.IgnorePatternWhitespace | RegexOptions.Compiled);
 
         private static readonly Regex _stylePattern = new Regex(@"
@@ -560,21 +567,57 @@ namespace MdXaml
                 ",
                 RegexOptions.Singleline | RegexOptions.IgnorePatternWhitespace | RegexOptions.Compiled);
 
-        private Inline ImageOrHrefInlineEvaluator(Match match)
+        private bool IsHrefMatch(Match match)
         {
-            if (String.IsNullOrEmpty(match.Groups[2].Value))
+            return String.IsNullOrEmpty(match.Groups[2].Value);
+        }
+
+        private IEnumerable<Inline> ImageOrHrefInlineEvaluator(string text, Match match, IMarkdown engine, out int parseTextBegin, out int parseTextEnd)
+        {
+            if (IsHrefMatch(match))
             {
-                return TreatsAsHref(match);
+                return TreatsAsHref(text, match, engine, out parseTextBegin, out parseTextEnd);
             }
             else
             {
-                return TreatsAsImage(match);
+                return new[] { TreatsAsImage(text, match, engine, out parseTextBegin, out parseTextEnd) };
             }
         }
 
-        private Inline TreatsAsHref(Match match)
+        private string ExtractText(Inline inline)
         {
-            string linkText = match.Groups[3].Value;
+            string text = string.Empty;
+            if (inline is Run run)
+            {
+                text += run.Text;
+            }
+            else if (inline is Hyperlink link)
+            {
+                foreach (var subInline in link.Inlines)
+                {
+                    text += ExtractText(subInline);
+                }
+            }
+            return text;
+        }
+
+        private IEnumerable<Inline> TreatsAsHref(string text, Match match, IMarkdown engine, out int parseTextBegin, out int parseTextEnd)
+        {
+            parseTextBegin = match.Groups[1].Index;
+            parseTextEnd = match.Index + match.Length;
+
+            var linkGroup = match.Groups[3];
+
+            var innerMatch = _imageOrHrefInline.Match(text, linkGroup.Index, linkGroup.Length);
+            if (innerMatch.Success && IsHrefMatch(innerMatch))
+            {
+                // We have an inner href link inside link text.
+                // Inner links have higher priority.
+
+                return TreatsAsHref(text, innerMatch, engine, out parseTextBegin, out parseTextEnd);
+            }
+
+            string linkText = linkGroup.Value;
             string url = match.Groups[4].Value;
             string title = match.Groups[7].Value;
 
@@ -599,15 +642,44 @@ namespace MdXaml
                 result.Style = LinkStyle;
             }
 
-            return result;
+            return new[] { result };
         }
 
-        private Inline TreatsAsImage(Match match)
+        private Inline TreatsAsImage(string text, Match match, IMarkdown engine, out int parseTextBegin, out int parseTextEnd)
         {
-            string linkText = match.Groups[3].Value;
+            parseTextBegin = match.Groups[1].Index;
+            parseTextEnd = match.Index + match.Length;
+
+            var linkGroup = match.Groups[3];
+            string linkText = linkGroup.Value;
             string urlTxt = match.Groups[4].Value;
             string title = match.Groups[7].Value;
 
+            var innerMatch = _imageOrHrefInline.Match(linkText);
+            if (innerMatch.Success && IsHrefMatch(innerMatch))
+            {
+                // We have an inner href link inside link text.
+                // Process it but only extract the text content.
+                int innerParseBegin;
+                int innerParseEnd;
+                var href = TreatsAsHref(linkText, innerMatch, engine, out innerParseBegin, out innerParseEnd);
+                string outtext = string.Empty;
+                string extra = linkText.Substring(0, innerParseBegin);
+                foreach (var inline in PrivateRunSpanGamut(extra))
+                {
+                    outtext += ExtractText(inline);
+                }
+                foreach (var inline in href)
+                {
+                    outtext += ExtractText(inline);
+                }
+                extra = linkText.Substring(innerParseEnd);
+                foreach (var inline in PrivateRunSpanGamut(extra))
+                {
+                    outtext += ExtractText(inline);
+                }
+                linkText = outtext;
+            }
             try
             {
                 return LoadImage(linkText, urlTxt, title);
@@ -620,8 +692,11 @@ namespace MdXaml
             }
         }
 
-        private Inline ImageWithSizeEvaluator(Match match)
+        private IEnumerable<Inline> ImageWithSizeEvaluator(string text, Match match, IMarkdown engine, out int parseTextBegin, out int parseTextEnd)
         {
+            parseTextBegin = match.Groups[1].Index;
+            parseTextEnd = match.Index + match.Length;
+
             string linkText = match.Groups[3].Value;
             string urlTxt = match.Groups[4].Value;
             string title = match.Groups[7].Value;
@@ -644,7 +719,7 @@ namespace MdXaml
                         effect(element);
             });
 
-            return image;
+            return new[] { image };
         }
 
         public InlineUIContainer LoadImage(
@@ -1040,7 +1115,7 @@ namespace MdXaml
         // `alphabet order` and `roman number` must start 'a.'～'c.' and 'i,'～'iii,'.
         // This restrict is avoid to treat "Yes," as list marker.
         private const string _extFirstListMaker = @"(?:[*+=-]|\d+[.]|[a-c][.]|[i]{1,3}[,]|[A-C][.]|[I]{1,3}[,])";
-        private const string _extSubseqListMaker = @"(?:[*+=-]|\d+[.]|[a-c][.]|[cdilmvx]+[,]|[A-C][.]|[CDILMVX]+[,])";
+        private const string _extSubseqListMaker = @"(?:[*+=-]|\d+[.]|[a-z][.]|[cdilmvx]+[,]|[A-Z][.]|[CDILMVX]+[,])";
 
         private const string _commonListMaker = @"(?:[*+-]|\d+[.])";
 
@@ -1060,8 +1135,8 @@ namespace MdXaml
 
         // Ordered List
         private const string _markerOL_Number = @"\d+[.]";
-        private const string _markerOL_LetterLower = @"[a-c][.]";
-        private const string _markerOL_LetterUpper = @"[A-C][.]";
+        private const string _markerOL_LetterLower = @"[a-z][.]";
+        private const string _markerOL_LetterUpper = @"[A-Z][.]";
         private const string _markerOL_RomanLower = @"[cdilmvx]+[,]";
         private const string _markerOL_RomanUpper = @"[CDILMVX]+[,]";
 
@@ -1152,7 +1227,7 @@ namespace MdXaml
                     {
                         listBulder.Append('\n');
                     }
-                    else if (TextUtil.TryDetendLine(line, countIndent, out var stripedLine))
+                    else if (TextUtil.TryDetentLine(line, countIndent, out var stripedLine))
                     {
                         // is it horizontal line?
                         if (_startNoIndentRule.IsMatch(stripedLine))
@@ -1496,63 +1571,23 @@ namespace MdXaml
 
         private Block CodeBlocksEvaluator(string? lang, string code)
         {
-            var txtEdit = new TextEditor();
+            var blocks = this.Plugins?.CodeBlockLoader?.Select(it => it.CodeBlocksEvaluator(lang, code, DisabledContextMenu));
+            Block result;
 
-            if (!String.IsNullOrEmpty(lang))
+            if (blocks is null || blocks.Count() == 0)
             {
-                var highlight = ParseParam.HighlightManager.Get(lang);
-                if (highlight == null)
-                {
-                    highlight = HighlightingManager.Instance.GetDefinition(lang);
-                }
-                txtEdit.SetCurrentValue(TextEditor.SyntaxHighlightingProperty, highlight);
-                txtEdit.Tag = lang;
+                result = new Paragraph();
+                (result as Paragraph)!.Inlines.Add(new Run(code));
+            }
+            else if (blocks.Count() == 1)
+            {
+                result = new BlockUIContainer(blocks.First());
+            }
+            else
+            {
+                result = Create<Section, Block>(blocks.Select(it => new BlockUIContainer(it)));
             }
 
-            txtEdit.Text = code;
-            txtEdit.HorizontalAlignment = HorizontalAlignment.Stretch;
-            txtEdit.IsReadOnly = true;
-            txtEdit.PreviewMouseWheel += (s, e) =>
-            {
-                if (e.Handled) return;
-
-                e.Handled = true;
-
-                var isShiftDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
-                if (isShiftDown)
-                {
-                    // horizontal scroll
-                    var offset = txtEdit.HorizontalOffset;
-                    offset -= e.Delta;
-                    txtEdit.ScrollToHorizontalOffset(offset);
-                }
-                else
-                {
-                    // event bubbles
-                    var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
-                    {
-                        RoutedEvent = UIElement.MouseWheelEvent,
-                        Source = s,
-                    };
-
-                    var parentObj = ((Control)s).Parent;
-                    if (parentObj is UIElement uielm)
-                    {
-                        uielm.RaiseEvent(eventArg);
-                    }
-                    else if (parentObj is ContentElement celem)
-                    {
-                        celem.RaiseEvent(eventArg);
-                    }
-                }
-            };
-
-
-            var result = new BlockUIContainer(txtEdit);
-            if (!DisabledContextMenu)
-            {
-                CommandsForTextEditor.Setup(txtEdit);
-            }
             if (CodeBlockStyle is not null)
             {
                 result.Style = CodeBlockStyle;
@@ -1561,7 +1596,6 @@ namespace MdXaml
             {
                 result.Tag = TagCodeBlock;
             }
-
             return result;
         }
 
@@ -1593,10 +1627,13 @@ namespace MdXaml
         //
         private static readonly Regex _codeSpan = new(@"
                     (?<!\\)   # Character before opening ` can't be a backslash
-                    (`+)      # $1 = Opening run of `
-                    (.+?)     # $2 = The code block
+                    (~~)?(__)?(?:(\*{3})|(\*{2})|(\*))?(~~)?(__)?
+                    (`+)      # $8 = Opening run of `
+                    (.+?)     # $9 = The code block
                     (?<!`)
-                    \1
+                    \8
+                    (?(7)\7)(?(2)\2)(?(4)\4|(?(5)\5|(?(6)\6)))
+                    (?(1)\1)(?(3)\3)
                     (?!`)", RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline | RegexOptions.Compiled);
 
         /// <summary>
@@ -1604,18 +1641,68 @@ namespace MdXaml
         /// </summary>
         private Inline CodeSpanEvaluator(Match match)
         {
-            string span = match.Groups[2].Value;
+            string span = match.Groups[9].Value;
             span = Regex.Replace(span, @"^[ ]*", ""); // leading whitespace
             span = Regex.Replace(span, @"[ ]*$", ""); // trailing whitespace
 
-            var result = new Run(span);
+            var run = new Run(span);
             if (CodeStyle is not null)
             {
-                result.Style = CodeStyle;
+                run.Style = CodeStyle;
             }
             if (!DisabledTag)
             {
-                result.Tag = TagCode;
+                run.Tag = TagCode;
+            }
+
+            Inline result = run;
+
+            // Bold-italic
+            if (match.Groups[3].Success) // ***
+            {
+                var boldElement = new Bold();
+                if (!DisabledTag) boldElement.Tag = TagBoldSpan;
+                var italicElement = new Italic(run);
+                if (!DisabledTag) italicElement.Tag = TagItalicSpan;
+                boldElement.Inlines.Add(italicElement);
+                result = boldElement;
+            }
+            // Bold
+            else if (match.Groups[4].Success) // **
+            {
+                var boldElement = new Bold(run);
+                if (!DisabledTag) boldElement.Tag = TagBoldSpan;
+                result = boldElement;
+            }
+            // Italic
+            else if (match.Groups[5].Success) // *
+            {
+                var italicElement = new Italic(run);
+                if (!DisabledTag) italicElement.Tag = TagItalicSpan;
+                result = italicElement;
+            }
+
+            // Strikethrough
+            if (match.Groups[1].Success || match.Groups[6].Success) // ~~
+            {
+                var strikethroughSpan = new Span(result);
+                strikethroughSpan.TextDecorations = TextDecorations.Strikethrough;
+                if (!DisabledTag)
+                {
+                    strikethroughSpan.Tag = TagStrikethroughSpan;
+                }
+                result = strikethroughSpan;
+            }
+
+            // Underline
+            if (match.Groups[2].Success || match.Groups[7].Success) // __
+            {
+                var underlineSpan = new Underline(result);
+                if (!DisabledTag)
+                {
+                    underlineSpan.Tag = TagUnderlineSpan;
+                }
+                result = underlineSpan;
             }
 
             return result;
@@ -1665,32 +1752,19 @@ namespace MdXaml
                         break;
 
                     case '\\': // escape
-                        if (++i < text.Length)
+                        buff.Append('\\');
+                        if (++i < text.Length && _markdown_punctuation.Contains(text.Substring(i, 1)))
                         {
-                            switch (text[i])
-                            {
-                                default:
-                                    buff.Append('\\').Append(text[i]);
-                                    break;
-
-                                case '\\': // escape
-                                case ':': // bold? or italic
-                                case '*': // bold? or italic
-                                case '~': // strikethrough?
-                                case '_': // underline?
-                                case '%': // color?
-                                    buff.Append(text[i]);
-                                    break;
-                            }
+                            buff.Append(text[i]);
+                            break;
                         }
-                        else
-                            buff.Append('\\');
-
+                        // not escaped
+                        --i;
                         break;
 
                     case ':': // emoji?
                         {
-                            var nxtI = text.IndexOf(':', i + 1);
+                            var nxtI = EscapedIndexOf(text, i + 1, ':');
                             if (nxtI != -1 && EmojiTable.TryGet(text.Substring(i + 1, nxtI - i - 1), out var emoji))
                             {
                                 buff.Append(emoji);
@@ -1873,11 +1947,15 @@ namespace MdXaml
 
                 if (c == '\\')
                 {
-                    i += 2;
-                    continue;
-
+                    if (++i < text.Length && _markdown_punctuation.Contains(text.Substring(i, 1)))
+                    {
+                        ++i;
+                        continue;
+                    }
+                    // not escaped
+                    --i;
                 }
-                else if (c == symbol)
+                if (c == symbol)
                 {
                     int endCnt = CountRepeat(text, i, symbol);
 
@@ -2010,8 +2088,12 @@ namespace MdXaml
             for (var i = start; i < text.Length; ++i)
             {
                 var ch = text[i];
-                if (ch == '\\') ++i;
-                else if (ch == target) return i;
+                if (ch == '\\') {
+                    if (++i < text.Length && _markdown_punctuation.Contains(text.Substring(i, 1))) continue;
+                    // not escaped
+                    --i;
+                }
+                if (ch == target) return i;
             }
             return -1;
         }
@@ -2081,7 +2163,8 @@ namespace MdXaml
         #region grammer - text
 
         private static readonly Regex _eoln = new("\\s+");
-        private static readonly Regex _lbrk = new(@"\ {2,}\n");
+        private static readonly Regex _lbrk = new(@"(?:\\| {2,})\n");
+        private static readonly string _markdown_punctuation = @"!""#$%&'()*+,-./:;<=>?@[\^_`{|~]}";
 
         public static IEnumerable<Inline> DoText(string text)
         {
@@ -2093,7 +2176,29 @@ namespace MdXaml
                     first = false;
                 else
                     yield return new LineBreak();
-                var t = _eoln.Replace(line, " ");
+
+                // Process escape characters
+                var buff = new StringBuilder();
+                for (var i = 0; i < line.Length; ++i) {
+                    var ch = line[i];
+                    switch (ch) {
+                    default:
+                        buff.Append(ch);
+                        break;
+
+                    case '\\': // escape
+                        if (++i < line.Length) {
+                            if (!_markdown_punctuation.Contains(line.Substring(i, 1))) {
+                                buff.Append('\\');
+                            }
+                            buff.Append(line[i]);
+                        } else
+                            buff.Append('\\');
+
+                        break;
+                    }
+                }
+                var t = _eoln.Replace(buff.ToString(), " ");
                 yield return new Run(t);
             }
         }
@@ -2189,14 +2294,12 @@ namespace MdXaml
         public bool SupportTextAlignment { get; }
         public bool SupportStrikethrough { set; get; }
         public bool SupportTextileInline { get; set; }
-        public InternalHighlightManager HighlightManager { get; }
 
         public ParseParam(
             IEnumerable<IBlockParser> primary,
             IEnumerable<IBlockParser> secondly,
             IEnumerable<IInlineParser> inlines,
-            SyntaxManager syntax,
-            InternalHighlightManager highlightManager)
+            SyntaxManager syntax)
         {
 
             PrimaryBlocks = primary.ToArray();
@@ -2205,7 +2308,6 @@ namespace MdXaml
             SupportTextAlignment = syntax.EnableTextAlignment;
             SupportStrikethrough = syntax.EnableStrikethrough;
             SupportTextileInline = syntax.EnableTextileInline;
-            HighlightManager = highlightManager;
         }
     }
 
@@ -2236,7 +2338,7 @@ namespace MdXaml
 
         public void Treats(Task<ImageLoaderManager.Result<FrameworkElement>> task)
         {
-            var dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+            var dispatcher = System.Windows.Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
             dispatcher.Invoke(async () => Treats(await task));
         }
 
@@ -2432,8 +2534,11 @@ namespace MdXaml
                 }
             };
         }
-
+#if NETFRAMEWORK
         public static bool TryCreate(string valueText, string unit, out ImageIndicate indicate)
+#else
+        public static bool TryCreate(string valueText, string unit, [NotNullWhen(true)] out ImageIndicate? indicate)
+#endif
         {
             if (double.TryParse(valueText, out var value))
             {

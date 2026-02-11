@@ -10,11 +10,7 @@ namespace MdXamlTest
 {
     static class Utils
     {
-#if !MIG_FREE
         const string ResourceKey = "MdXaml.Test.Md.";
-#else
-        const string ResourceKey = "MdXaml.TestMigfree.Md.";
-#endif
 
         public static string LoadText(string name)
         {
