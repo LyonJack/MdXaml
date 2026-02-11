@@ -104,6 +104,17 @@ namespace MdXaml.Test
 
         [Test]
         [Apartment(ApartmentState.STA)]
+        public void Transform_givenOrderedListStart_generatesExpectedResult()
+        {
+            var text = Utils.LoadText("OrderedListStart.md");
+            var markdown = new Markdown();
+            markdown.DisabledContextMenu = true;
+            var result = markdown.Transform(text);
+            Approvals.Verify(Utils.AsXaml(result));
+        }
+
+        [Test]
+        [Apartment(ApartmentState.STA)]
         public void Transform_givenTables1_generatesExpectedResult()
         {
             var text = Utils.LoadText("Tables.md");
@@ -159,7 +170,7 @@ namespace MdXaml.Test
             var markdown = new Markdown()
             {
                 BaseUri = baseUri,
-                DisabledTootip = true,
+                DisabledTooltip = true,
             };
             var result = markdown.Transform(text);
             Approvals.Verify(Utils.AsXaml(result));
@@ -230,7 +241,7 @@ namespace MdXaml.Test
             var text = Utils.LoadText("Images.md");
             var markdown = new Markdown()
             {
-                DisabledTootip = true,
+                DisabledTooltip = true,
                 AssetPathRoot = assetPath,
                 BaseUri = baseUri,
             };

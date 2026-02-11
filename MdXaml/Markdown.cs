@@ -1272,6 +1272,12 @@ namespace MdXaml
             var resultList = Create<List, ListItem>(ProcessListItems(list, markerPattern));
 
             resultList.MarkerStyle = textMarker;
+            if (textMarker == TextMarkerStyle.Decimal)
+            {
+                var startIndex = GetDecimalListStartIndex(match.Groups["mkr"].Value);
+                if(startIndex != 1)
+                    resultList.StartIndex = startIndex;
+            }
 
             yield return resultList;
 
@@ -1393,6 +1399,17 @@ namespace MdXaml
             }
 
             throw new InvalidOperationException("sorry library manager forget to modify about listmerker.");
+        }
+
+        /// <summary>
+        /// Parses the start index from the first list marker.
+        /// </summary>
+        /// <param name="markerText">list maker (eg. 1. </param>
+        private static int GetDecimalListStartIndex(string markerText)
+        {
+            if (markerText is null || markerText.Length == 0) return 1;
+            var numText = markerText.Substring(0, markerText.Length-1);
+            return int.TryParse(numText, out var n)? n : 1;
         }
 
         #endregion
