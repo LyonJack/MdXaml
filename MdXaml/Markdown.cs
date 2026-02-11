@@ -1275,7 +1275,7 @@ namespace MdXaml
             if (textMarker == TextMarkerStyle.Decimal)
             {
                 var startIndex = GetDecimalListStartIndex(match.Groups["mkr"].Value);
-                if(startIndex != 1)
+                if (startIndex != 1)
                     resultList.StartIndex = startIndex;
             }
 
@@ -1408,8 +1408,8 @@ namespace MdXaml
         private static int GetDecimalListStartIndex(string markerText)
         {
             if (markerText is null || markerText.Length == 0) return 1;
-            var numText = markerText.Substring(0, markerText.Length-1);
-            return int.TryParse(numText, out var n)? n : 1;
+            var numText = markerText.Substring(0, markerText.Length - 1);
+            return int.TryParse(numText, out var n) ? n : 1;
         }
 
         #endregion
@@ -2108,7 +2108,8 @@ namespace MdXaml
             for (var i = start; i < text.Length; ++i)
             {
                 var ch = text[i];
-                if (ch == '\\') {
+                if (ch == '\\')
+                {
                     if (++i < text.Length && _markdown_punctuation.Contains(text.Substring(i, 1))) continue;
                     // not escaped
                     --i;
@@ -2199,23 +2200,28 @@ namespace MdXaml
 
                 // Process escape characters
                 var buff = new StringBuilder();
-                for (var i = 0; i < line.Length; ++i) {
+                for (var i = 0; i < line.Length; ++i)
+                {
                     var ch = line[i];
-                    switch (ch) {
-                    default:
-                        buff.Append(ch);
-                        break;
+                    switch (ch)
+                    {
+                        default:
+                            buff.Append(ch);
+                            break;
 
-                    case '\\': // escape
-                        if (++i < line.Length) {
-                            if (!_markdown_punctuation.Contains(line.Substring(i, 1))) {
-                                buff.Append('\\');
+                        case '\\': // escape
+                            if (++i < line.Length)
+                            {
+                                if (!_markdown_punctuation.Contains(line.Substring(i, 1)))
+                                {
+                                    buff.Append('\\');
+                                }
+                                buff.Append(line[i]);
                             }
-                            buff.Append(line[i]);
-                        } else
-                            buff.Append('\\');
+                            else
+                                buff.Append('\\');
 
-                        break;
+                            break;
                     }
                 }
                 var t = _eoln.Replace(buff.ToString(), " ");
