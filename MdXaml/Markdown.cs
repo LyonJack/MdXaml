@@ -105,13 +105,17 @@ namespace MdXaml
             }
         }
 
+        private readonly IConversion _defaultFilter;
+        private IConversion? FilterChain { get; set; }
+
         private ParseParam ParseParam { get; set; }
 
         private ImageLoaderManager LoaderManager { get; }
 
         #region dependencyobject property
 
-        // Using a DependencyProperty as the backing store for DocumentStyle.  This enables animation, styling, binding, etc...
+        // Using a DependencyProperty as the backing store for DocumentStyle.
+        // This enables animation, styling, binding, etc...
         public static readonly DependencyProperty DocumentStyleProperty =
             DependencyProperty.Register(nameof(DocumentStyle), typeof(Style), typeof(Markdown), new PropertyMetadata(null));
 
@@ -154,6 +158,7 @@ namespace MdXaml
             AssetPathRoot = Environment.CurrentDirectory;
             LoaderManager = new();
             Plugins = MdXamlPlugins.Default.Clone();
+            _defaultFilter = new DefaultTransformConversion(this);
         }
 
         public FlowDocument Transform(string text)
@@ -164,22 +169,44 @@ namespace MdXaml
             }
 
             text = TextUtil.Normalize(text);
+
+            if (FilterChain is null)
+            {
+                return PrivateTransform(text);
+            }
+            else
+            {
+                return FilterChain.DoConversion(text);
+            }
+        }
+
+        private FlowDocument PrivateTransform(string text)
+        {
             var document = Create<FlowDocument, Block>(PrivateRunBlockGamut(text, ParseParam.SupportTextAlignment));
-
             document.SetBinding(FlowDocument.StyleProperty, new Binding(DocumentStyleProperty.Name) { Source = this });
-
             return document;
         }
 
         private void PluginUpdated()
         {
+            var plugins = Plugins ?? MdXamlPlugins.Default;
+
             var topBlocks = new List<IBlockParser>();
             var subBlocks = new List<IBlockParser>();
             var inlines = new List<IInlineParser>();
 
-            // top-level block parser
+            // filter
+            if (plugins.Filters.Count == 0)
+            {
+                FilterChain = null;
+            }
+            else
+            {
+                FilterChain = plugins.Filters.ToFilterChain(_defaultFilter);
+            }
 
-            if (_plugins.Syntax.EnableListMarkerExt)
+            // top-level block parser
+            if (plugins.Syntax.EnableListMarkerExt)
             {
                 topBlocks.Add(SimpleBlockParser.New(_extListNested, ExtListEvaluator));
             }
@@ -197,7 +224,7 @@ namespace MdXaml
             subBlocks.Add(SimpleBlockParser.New(_headerAtx, AtxHeaderEvaluator));
 
 
-            if (_plugins.Syntax.EnableRuleExt)
+            if (plugins.Syntax.EnableRuleExt)
             {
                 subBlocks.Add(SimpleBlockParser.New(_horizontalRules, RuleEvaluator));
             }
@@ -206,11 +233,11 @@ namespace MdXaml
                 subBlocks.Add(SimpleBlockParser.New(_horizontalCommonRules, RuleCommonEvaluator));
             }
 
-            if (_plugins.Syntax.EnableTableBlock)
+            if (plugins.Syntax.EnableTableBlock)
             {
                 subBlocks.Add(SimpleBlockParser.New(_table, TableEvalutor));
             }
-            if (_plugins.Syntax.EnableNoteBlock)
+            if (plugins.Syntax.EnableNoteBlock)
             {
                 subBlocks.Add(SimpleBlockParser.New(_note, NoteEvaluator));
             }
@@ -218,7 +245,7 @@ namespace MdXaml
 
             // inline parser
 
-            if (_plugins.Syntax.EnableImageResizeExt)
+            if (plugins.Syntax.EnableImageResizeExt)
             {
                 inlines.Add(SimpleInlineParser.New(_resizeImage, ImageWithSizeEvaluator));
             }
@@ -231,20 +258,20 @@ namespace MdXaml
                 inlines.Add(SimpleInlineParser.New(_strictBold, BoldEvaluator));
                 inlines.Add(SimpleInlineParser.New(_strictItalic, ItalicEvaluator));
 
-                if (_plugins.Syntax.EnableStrikethrough)
+                if (plugins.Syntax.EnableStrikethrough)
                     inlines.Add(SimpleInlineParser.New(_strikethrough, StrikethroughEvaluator));
             }
 
-            topBlocks.AddRange(_plugins.TopBlock);
-            subBlocks.AddRange(_plugins.Block);
-            inlines.AddRange(_plugins.Inline);
+            topBlocks.AddRange(plugins.TopBlock);
+            subBlocks.AddRange(plugins.Block);
+            inlines.AddRange(plugins.Inline);
 
-            foreach (var def in _plugins.Highlights)
+            foreach (var def in plugins.Highlights)
                 foreach (var parser in Plugins?.CodeBlockLoader ?? new())
                     parser.Register(def);
 
-            ParseParam = new ParseParam(topBlocks, subBlocks, inlines, _plugins.Syntax);
-            LoaderManager.Restructure(_plugins);
+            ParseParam = new ParseParam(topBlocks, subBlocks, inlines, plugins.Syntax);
+            LoaderManager.Restructure(plugins);
         }
 
         /// <summary>
@@ -2288,6 +2315,16 @@ namespace MdXaml
         }
 
         #endregion
+
+        private sealed class DefaultTransformConversion : IConversion
+        {
+            private readonly Markdown _markdown;
+
+            internal DefaultTransformConversion(Markdown markdown) => _markdown = markdown;
+
+            public FlowDocument DoConversion(string markdownText)
+                => _markdown.PrivateTransform(markdownText);
+        }
     }
 
     public delegate void HyperLinkClickCallback(string url);

@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Markup;
 using System.Xml;
 
@@ -14,24 +15,8 @@ namespace MdXaml.Demo
 {
     public class MarkdownXamlConverter : DependencyObject, IValueConverter
     {
-        // Using a DependencyProperty as the backing store for Markdown.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty MarkdownProperty =
-            DependencyProperty.Register("Markdown",
-                typeof(Markdown),
-                typeof(MarkdownXamlConverter),
-                new PropertyMetadata(null));
-
-        private Lazy<Markdown> mMarkdown;
-
         public MarkdownXamlConverter()
         {
-            mMarkdown = new Lazy<Markdown>(MakeMarkdown);
-        }
-
-        public Markdown Markdown
-        {
-            get { return (Markdown)GetValue(MarkdownProperty); }
-            set { SetValue(MarkdownProperty, value); }
         }
 
         /// <summary>
@@ -51,11 +36,8 @@ namespace MdXaml.Demo
                 return null;
             }
 
-            var text = (string)value;
-
-            var engine = Markdown ?? mMarkdown.Value;
-
-            return AsXaml(engine.Transform(text));
+            var doc = (FlowDocument)value;
+            return AsXaml(doc);
         }
 
         /// <summary>
@@ -79,14 +61,14 @@ namespace MdXaml.Demo
             return markdown;
         }
 
-        private string AsXaml(object instance)
+        private string AsXaml(FlowDocument document)
         {
             using (var writer = new StringWriter())
             {
                 var settings = new XmlWriterSettings { Indent = true };
                 using (var xmlWriter = XmlWriter.Create(writer, settings))
                 {
-                    XamlWriter.Save(instance, xmlWriter);
+                    XamlWriter.Save(document, xmlWriter);
                 }
 
                 writer.WriteLine();

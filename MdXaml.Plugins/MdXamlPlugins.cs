@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -13,11 +13,12 @@ namespace MdXaml.Plugins
     {
         public static readonly MdXamlPlugins Default = new();
 
-        public event Action Updated;
+        public event Action? Updated;
 
         public SyntaxManager Syntax { get; }
 
         public ObservableCollection<IPluginSetup> Setups { get; }
+        public ObservableCollection<IFilter> Filters { get; }
         public ObservableCollection<IBlockParser> TopBlock { get; }
         public ObservableCollection<IBlockParser> Block { get; }
         public ObservableCollection<IInlineParser> Inline { get; }
@@ -25,12 +26,14 @@ namespace MdXaml.Plugins
         public ObservableCollection<IElementLoader> ElementLoader { get; }
         public ObservableCollection<ICodeBlockLoader> CodeBlockLoader { get; }
         public ObservableCollection<Definition> Highlights { get; }
+        public ObservableCollection<IStyleOverwriter> StyleOverwriter { get; }
+        public ObservableCollection<IViewerArranger> ViewerArranger { get; }
 
         public MdXamlPlugins() : this(new SyntaxManager())
         {
         }
 
-        public MdXamlPlugins(SyntaxManager manager) : this(manager, new(), new(), new(), new(), new(), new(), new(), new())
+        public MdXamlPlugins(SyntaxManager manager) : this(manager, new(), new(), new(), new(), new(), new(), new(), new(), new(), new(), new())
         {
         }
 
@@ -43,7 +46,10 @@ namespace MdXaml.Plugins
             ObservableCollection<IImageLoader> imageLoader,
             ObservableCollection<IElementLoader> elementLoader,
             ObservableCollection<Definition> highlights,
-            ObservableCollection<ICodeBlockLoader> codeBlockLoader)
+            ObservableCollection<ICodeBlockLoader> codeBlockLoader,
+            ObservableCollection<IFilter> filters,
+            ObservableCollection<IStyleOverwriter> styleOverwriter,
+            ObservableCollection<IViewerArranger> viewerArranger)
         {
             Syntax = manager;
             Setups = setups;
@@ -54,6 +60,9 @@ namespace MdXaml.Plugins
             ElementLoader = elementLoader;
             Highlights = highlights;
             CodeBlockLoader = codeBlockLoader;
+            Filters = filters;
+            StyleOverwriter = styleOverwriter;
+            ViewerArranger = viewerArranger;
 
             Setups.CollectionChanged += Setups_CollectionChanged;
             TopBlock.CollectionChanged += (s, e) => NotifyUpdated();
@@ -63,6 +72,9 @@ namespace MdXaml.Plugins
             ElementLoader.CollectionChanged += (s, e) => NotifyUpdated();
             Highlights.CollectionChanged += (s, e) => NotifyUpdated();
             CodeBlockLoader.CollectionChanged += (s, e) => NotifyUpdated();
+            Filters.CollectionChanged += (s, e) => NotifyUpdated();
+            StyleOverwriter.CollectionChanged += (s, e) => NotifyUpdated();
+            ViewerArranger.CollectionChanged += (s, e) => NotifyUpdated();
         }
 
         private void Setups_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -89,7 +101,10 @@ namespace MdXaml.Plugins
                         new(ImageLoader),
                         new(ElementLoader),
                         new(Highlights),
-                        new(CodeBlockLoader));
+                        new(CodeBlockLoader),
+                        new(Filters),
+                        new(StyleOverwriter),
+                        new(ViewerArranger));
 
     }
 }

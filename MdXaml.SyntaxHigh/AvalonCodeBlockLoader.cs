@@ -1,4 +1,5 @@
 ﻿using ICSharpCode.AvalonEdit;
+using ICSharpCode.AvalonEdit.Highlighting;
 using MdXaml.Highlighting;
 using MdXaml.Menus;
 using MdXaml.Plugins;
@@ -11,7 +12,6 @@ namespace MdXaml.SyntaxHigh
 {
     public class AvalonCodeBlockLoader : ICodeBlockLoader
     {
-
         private InternalHighlightManager HighlightManager { get; } = new();
 
         public void Register(Definition definition)
