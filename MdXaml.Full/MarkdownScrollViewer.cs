@@ -32,7 +32,6 @@ namespace MdXaml.Full
 
         public MarkdownScrollViewer()
         {
-            Plugins = new MdXamlPlugins();
         }
     }
 }
