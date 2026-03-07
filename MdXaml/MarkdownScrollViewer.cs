@@ -153,11 +153,12 @@ namespace MdXaml
                 var plugins = owner.Plugins ?? MdXamlPlugins.Default;
                 if (owner._styleOverwritten != style)
                 {
-                    owner._styleOverwritten = style;
+                    var currentStyle = style;
                     foreach (var overwriter in plugins.StyleOverwriter)
-                        overwriter.Overwrite(style);
+                        currentStyle = overwriter.Overwrite(currentStyle);
+                    owner._styleOverwritten = currentStyle;
                 }
-                owner.Engine.DocumentStyle = style;
+                owner.Engine.DocumentStyle = owner._styleOverwritten;
             }
         }
 
