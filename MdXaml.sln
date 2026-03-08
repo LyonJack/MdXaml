@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 18
-VisualStudioVersion = 18.0.11010.61
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36915.13 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MdXaml", "MdXaml\MdXaml.csproj", "{3B285B6B-C6C9-4FF5-AD2B-04808862D81E}"
 EndProject
@@ -45,6 +45,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MdXaml.Demo.SyntaxHigh", "samples\MdXaml.Demo.SyntaxHigh\MdXaml.Demo.SyntaxHigh.csproj", "{7BEA0BF3-9715-42B3-A4F5-E50EBFADE368}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MdXaml.FrontMatter", "MdXaml.FrontMatter\MdXaml.FrontMatter.csproj", "{30D32274-4354-4381-B923-D47F0D316EB8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MdXaml.FrontMatter.Test", "tests\MdXaml.FrontMatter.Test\MdXaml.FrontMatter.Test.csproj", "{78688750-C108-4554-9DC8-4586BD2A0CAA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -260,6 +262,18 @@ Global
 		{30D32274-4354-4381-B923-D47F0D316EB8}.Release|x64.Build.0 = Release|Any CPU
 		{30D32274-4354-4381-B923-D47F0D316EB8}.Release|x86.ActiveCfg = Release|Any CPU
 		{30D32274-4354-4381-B923-D47F0D316EB8}.Release|x86.Build.0 = Release|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Debug|x64.Build.0 = Debug|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Debug|x86.Build.0 = Debug|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Release|x64.ActiveCfg = Release|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Release|x64.Build.0 = Release|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Release|x86.ActiveCfg = Release|Any CPU
+		{78688750-C108-4554-9DC8-4586BD2A0CAA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -274,6 +288,7 @@ Global
 		{CC0EBCF6-0EE9-4873-BB6F-6A9F4CF84B79} = {435867FA-EE25-4708-9BBA-8509ABC7E389}
 		{68742EAC-05C4-4A04-8A89-D0A6981DA53F} = {09BEAB2A-F47E-4D2B-AE81-8DC1BBB52638}
 		{7BEA0BF3-9715-42B3-A4F5-E50EBFADE368} = {435867FA-EE25-4708-9BBA-8509ABC7E389}
+		{78688750-C108-4554-9DC8-4586BD2A0CAA} = {09BEAB2A-F47E-4D2B-AE81-8DC1BBB52638}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {23DF7019-3B25-4B82-8955-25F1DDD72D84}
