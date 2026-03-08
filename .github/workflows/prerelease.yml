@@ -28,9 +28,7 @@ jobs:
       id: versioning
       shell: pwsh
       run: |
-        $version = .github/my_scripts/versioning.ps1 `
-          -PropsPath "./Directory.Build.props" `
-          -RepresentativePackageId "MdXaml";
+        $version = ./.github/my_scripts/versioning.ps1 -PropsPath "./Directory.Build.props" -RepresentativePackageId "MdXaml";
         echo "package_version=$version" >> $GITHUB_OUTPUT
 
     - name: Commit updated props
