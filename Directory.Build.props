@@ -13,6 +13,6 @@
     <PackageTargetFrameworks>net462;net8.0-windows</PackageTargetFrameworks>
     <SampleTargetFrameworks>net462;net8.0-windows</SampleTargetFrameworks>
     <TestTargetFrameworks>net462;net8.0-windows</TestTargetFrameworks>
-    <PackageVersion>1.27.0</PackageVersion>
+    <PackageVersion>2.0.0</PackageVersion>
   </PropertyGroup>
 </Project>
