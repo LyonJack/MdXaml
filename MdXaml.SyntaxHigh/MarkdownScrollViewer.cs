@@ -21,7 +21,7 @@ namespace MdXaml.SyntaxHigh
 
         public MarkdownScrollViewer()
         {
-            Plugins = new MdXamlPlugins();
+            Plugins = Plugins?.Clone() ?? new MdXamlPlugins();
         }
     }
 }

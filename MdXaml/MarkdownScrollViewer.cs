@@ -1,4 +1,4 @@
-﻿using MdXaml.LinkActions;
+using MdXaml.LinkActions;
 using MdXaml.Plugins;
 using System;
 using System.Collections.Generic;
@@ -135,16 +135,30 @@ namespace MdXaml
 
                 owner.Engine.Plugins = plugins;
 
+                foreach (var arranger in plugins.ViewerArranger)
+                    arranger.ResetArrange(owner);
+
                 var doc = owner.Engine.Transform(owner.Markdown ?? "");
                 owner.SetCurrentValue(DocumentProperty, doc);
+
+                foreach (var arranger in plugins.ViewerArranger)
+                    arranger.Arrange(owner, doc);
             }
         }
 
         private static void UpdateStyle(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is MarkdownScrollViewer owner)
+            if (d is MarkdownScrollViewer owner && e.NewValue is Style style)
             {
-                owner.Engine.DocumentStyle = (Style)e.NewValue;
+                var plugins = owner.Plugins ?? MdXamlPlugins.Default;
+                if (owner._styleOverwritten != style)
+                {
+                    var currentStyle = style;
+                    foreach (var overwriter in plugins.StyleOverwriter)
+                        currentStyle = overwriter.Overwrite(currentStyle);
+                    owner._styleOverwritten = currentStyle;
+                }
+                owner.Engine.DocumentStyle = owner._styleOverwritten;
             }
         }
 
@@ -198,6 +212,7 @@ namespace MdXaml
 
         private string _fragment;
         private Uri _source;
+        private Style? _styleOverwritten;
 
         private Markdown _engine;
         public Markdown Engine

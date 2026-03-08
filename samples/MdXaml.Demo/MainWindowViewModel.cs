@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Markup;
 
 namespace MdXaml.Demo
@@ -16,15 +17,16 @@ namespace MdXaml.Demo
     {
         public MainWindowViewModel()
         {
-            Styles = new List<StyleInfo>();
-
-            Styles.Add(new StyleInfo("Plain", null));
-            Styles.Add(new StyleInfo("Standard", MarkdownStyle.Standard));
-            Styles.Add(new StyleInfo("Compact", MarkdownStyle.Compact));
-            Styles.Add(new StyleInfo("GithubLike", MarkdownStyle.GithubLike));
-            Styles.Add(new StyleInfo("Sasabune", MarkdownStyle.Sasabune));
-            Styles.Add(new StyleInfo("SasabuneStandard", MarkdownStyle.SasabuneStandard));
-            Styles.Add(new StyleInfo("SasabuneCompact", MarkdownStyle.SasabuneCompact));
+            Styles = new List<StyleInfo>
+            {
+                new StyleInfo("Plain", null),
+                new StyleInfo("Standard", MarkdownStyle.Standard),
+                new StyleInfo("Compact", MarkdownStyle.Compact),
+                new StyleInfo("GithubLike", MarkdownStyle.GithubLike),
+                new StyleInfo("Sasabune", MarkdownStyle.Sasabune),
+                new StyleInfo("SasabuneStandard", MarkdownStyle.SasabuneStandard),
+                new StyleInfo("SasabuneCompact", MarkdownStyle.SasabuneCompact)
+            };
 
             SelectedStyleInfo = Styles[1];
 
@@ -32,22 +34,22 @@ namespace MdXaml.Demo
             var subjectAssembly = GetType().Assembly;
             using (Stream stream = subjectAssembly.GetManifestResourceStream(subjectType.FullName + ".md"))
             {
-
+                string ragText;
                 if (stream == null)
                 {
-                    TextView =
-                    TextXaml = String.Format("Could not find sample text *{0}*.md", subjectType.FullName);
+                    ragText = String.Format("Could not find sample text *{0}*.md", subjectType.FullName);
                 }
                 else
                 {
-
                     using (StreamReader reader = new StreamReader(stream))
                     {
-                        TextView =
-                        TextXaml = reader.ReadToEnd();
+                        ragText = reader.ReadToEnd();
                     }
                 }
+                _rawText = ragText;
             }
+
+            _activeTabIndex = 0;
 
             ForegroundRed = 0x00;
             ForegroundGreen = 0x00;
@@ -58,6 +60,7 @@ namespace MdXaml.Demo
             BackgroundBlue = 0xFF;
         }
 
+        #region Style & Colors
 
         public StyleInfo _selectedStyleInfo;
         public StyleInfo SelectedStyleInfo
@@ -80,46 +83,6 @@ namespace MdXaml.Demo
                 if (_styles == value) return;
                 _styles = value;
                 FirePropertyChanged();
-            }
-        }
-
-        public string _textView;
-        public string TextView
-        {
-            get { return _textView; }
-            set
-            {
-                if (_textView == value) return;
-                _textView = value;
-                FirePropertyChanged();
-            }
-        }
-
-
-        private Task TextXamlChangeEvent;
-        public string _textXaml;
-        public string TextXaml
-        {
-            get { return _textXaml; }
-            set
-            {
-                if (_textXaml == value) return;
-                _textXaml = value;
-                if (TextXamlChangeEvent == null || TextXamlChangeEvent.Status >= TaskStatus.RanToCompletion)
-                {
-                    TextXamlChangeEvent = Task.Run(() =>
-                    {
-                        Task.Delay(100);
-                    retry:
-                        var oldVal = _textXaml;
-
-                        Thread.MemoryBarrier();
-                        FirePropertyChanged(nameof(TextXaml));
-
-                        Thread.MemoryBarrier();
-                        if (oldVal != _textXaml) goto retry;
-                    });
-                }
             }
         }
 
@@ -194,6 +157,103 @@ namespace MdXaml.Demo
                 FirePropertyChanged();
             }
         }
+
+        #endregion
+
+
+        #region Markdown Text
+
+        private Task _textXamlChangeEvent;
+        private string _rawText;
+        public string RawText
+        {
+            get => _rawText ?? string.Empty;
+            set
+            {
+                if (_rawText == value) return;
+                _rawText = value;
+                if (_textXamlChangeEvent == null || _textXamlChangeEvent.Status >= TaskStatus.RanToCompletion)
+                {
+                    _textXamlChangeEvent = Task.Run(() =>
+                    {
+                        Task.Delay(100);
+                    retry:
+                        var oldVal = _rawText;
+                        Thread.MemoryBarrier();
+                        FirePropertyChanged(nameof(RawText));
+                        Thread.MemoryBarrier();
+                        if (oldVal != _rawText) goto retry;
+                    });
+                }
+            }
+        }
+
+        private FlowDocument _renderingDocument;
+        public FlowDocument RenderingDocument
+        {
+            get => _renderingDocument;
+            set
+            {
+                if (_renderingDocument == value) return;
+                _renderingDocument = value;
+                FirePropertyChanged();
+                RefreshVisibleOutput();
+            }
+        }
+
+        private FlowDocument _requestingConvertXaml;
+        public FlowDocument RequestingConvertXaml
+        {
+            get => _requestingConvertXaml;
+            set
+            {
+                if (_requestingConvertXaml == value) return;
+                _requestingConvertXaml = value;
+                FirePropertyChanged();
+            }
+        }
+
+        private FlowDocument _requestingConvertMatter;
+        public FlowDocument RequestingConvertMatter
+        {
+            get => _requestingConvertMatter;
+            set
+            {
+                if (_requestingConvertMatter == value) return;
+                _requestingConvertMatter = value;
+                FirePropertyChanged();
+            }
+        }
+
+
+        #endregion
+
+        private int _activeTabIndex;
+        public int ActiveTabIndex
+        {
+            get => _activeTabIndex;
+            set
+            {
+                if (_activeTabIndex == value) return;
+                _activeTabIndex = value;
+                FirePropertyChanged();
+                RefreshVisibleOutput();
+            }
+        }
+
+        private void RefreshVisibleOutput()
+        {
+            switch (_activeTabIndex)
+            {
+                case 1:
+                    RequestingConvertXaml = RenderingDocument;
+                    break;
+                case 2:
+                    RequestingConvertMatter = RenderingDocument;
+                    break;
+            }
+        }
+
 
         /// <summary> <see cref="INotifyPropertyChanged"/> </summary>
         public event PropertyChangedEventHandler PropertyChanged;

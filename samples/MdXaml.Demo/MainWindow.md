@@ -1,4 +1,13 @@
-﻿# MdXaml #
+﻿---
+Title: MainWindow.md
+Date: 2026-2-22
+Tags:
+  - Markdown
+  - MdXaml
+  - Demo
+---
+
+# MdXaml#
 
 MdXaml is a modify version of Markdown.Xaml.
 Markdown XAML is a port of the popular *MarkdownSharp* Markdown processor, but 

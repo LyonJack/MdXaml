@@ -7,6 +7,7 @@
     xmlns:mdhtml="clr-namespace:MdXaml.Html;assembly=MdXaml.Html"
     xmlns:mdplugins="clr-namespace:MdXaml.Plugins;assembly=MdXaml.Plugins"
     xmlns:mdsvg="clr-namespace:MdXaml.Svg;assembly=MdXaml.Svg"
+    xmlns:mdmatter="clr-namespace:MdXaml.FrontMatter;assembly=MdXaml.FrontMatter"
     StartupUri="MainWindow.xaml">
 
     <Application.Resources>
@@ -14,6 +15,7 @@
             <mdhtml:HtmlPluginSetup />
             <mdsvg:SvgPluginSetup />
             <mdagif:AnimatedGifPluginSetup />
+            <mdmatter:FrontMatterPluginSetup />
 
             <mdplugins:MdXamlPlugins.Highlights>
                 <mdplugins:Definition Alias="pegasus,peg" Resource="pack://application:,,,/Asset/Pegasus-Mode.xshd" />

@@ -18,6 +18,10 @@
     <LangVersion>9</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\key.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\pack_readme\MdXaml.AnimatedGif.md" Pack="true" PackagePath="\" />

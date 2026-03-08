@@ -1,4 +1,5 @@
 ﻿using ICSharpCode.AvalonEdit;
+using ICSharpCode.AvalonEdit.Highlighting;
 using MdXaml.Highlighting;
 using MdXaml.Menus;
 using MdXaml.Plugins;
@@ -11,7 +12,6 @@ namespace MdXaml.SyntaxHigh
 {
     public class AvalonCodeBlockLoader : ICodeBlockLoader
     {
-
         private InternalHighlightManager HighlightManager { get; } = new();
 
         public void Register(Definition definition)
@@ -26,6 +26,10 @@ namespace MdXaml.SyntaxHigh
             if (!String.IsNullOrEmpty(lang))
             {
                 var highlight = HighlightManager.Get(lang!);
+                if (highlight == null)
+                {
+                    highlight = HighlightingManager.Instance.GetDefinition(lang);
+                }
                 txtEdit.SetCurrentValue(TextEditor.SyntaxHighlightingProperty, highlight);
                 txtEdit.Tag = lang;
             }

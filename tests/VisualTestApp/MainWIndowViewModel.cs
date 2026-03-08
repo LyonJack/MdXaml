@@ -5,7 +5,7 @@ using System.Text;
 
 namespace VisualTestApp
 {
-    internal class MainWIndowViewModel : INotifyPropertyChanged
+    internal class MainWindowViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
 

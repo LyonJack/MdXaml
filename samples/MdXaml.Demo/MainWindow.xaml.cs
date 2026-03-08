@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -25,29 +25,6 @@ namespace MdXaml.Demo
         public MainWindow()
         {
             InitializeComponent();
-        }
-
-        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            var tabControl = e.Source as TabControl;
-            if (tabControl is null) return;
-
-            var selectedTab = tabControl.SelectedItem as TabItem;
-            if (selectedTab is null) return;
-
-            var dataContext = (MainWindowViewModel)DataContext;
-            if (dataContext is null) return;
-
-            var selectedTabHeader = (String)selectedTab.Header;
-
-            if (selectedTabHeader == "BindingStyle")
-            {
-                dataContext.TextView = dataContext.TextXaml;
-            }
-            else
-            {
-                dataContext.TextXaml = dataContext.TextView;
-            }
         }
     }
 }

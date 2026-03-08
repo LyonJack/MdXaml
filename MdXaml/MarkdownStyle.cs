@@ -5,6 +5,8 @@ namespace MdXaml
 {
     public static class MarkdownStyle
     {
+        private const string MarkdownStyleNameKey = "MarkdownStyleName";
+
         private const string DocumentStyleStandard = "DocumentStyleStandard";
         private const string DocumentStyleCompact = "DocumentStyleCompact";
         private const string DocumentStyleGithubLike = "DocumentStyleGithubLike";
@@ -25,23 +27,9 @@ namespace MdXaml
 
         static ResourceDictionary LoadDictionary()
         {
-            var baseUri = new Uri("/MdXaml;component/Markdown.Style.xaml", UriKind.RelativeOrAbsolute);
-            var core = (ResourceDictionary)Application.LoadComponent(baseUri);
-
-            try
-            {
-                if (Type.GetType("ICSharpCode.AvalonEdit.TextEditor, ICSharpCode.AvalonEdit") is not null && Type.GetType("MdXaml.SyntaxHigh.AvalonCodeBlockLoader, MdXaml.SyntaxHigh") is not null)
-                {
-                    var avalonUri = new Uri("/MdXaml.SyntaxHigh;component/Markdown.Style.SyntaxHigh.xaml", UriKind.RelativeOrAbsolute);
-                    var avalon = (ResourceDictionary)Application.LoadComponent(avalonUri);
-                    core.MergedDictionaries.Add(avalon);
-                }
-            }
-            catch
-            {
-                // Do nothing, AvalonEdit not found
-            }
-
+            var uriText = "MdXaml;component/Markdown.Style.xaml";
+            var resourceUri = new Uri(uriText, UriKind.RelativeOrAbsolute);
+            var core = (ResourceDictionary)Application.LoadComponent(resourceUri);
             return core;
         }
 
@@ -68,5 +56,24 @@ namespace MdXaml
         public static Style Sasabune => _sasabune is null ? LoadXaml(DocumentStyleSasabune) : _sasabune;
         public static Style SasabuneStandard => _sasabuneStandard is null ? LoadXaml(DocumentStyleSasabuneStandard) : _sasabuneStandard;
         public static Style SasabuneCompact => _sasabuneCompact is null ? LoadXaml(DocumentStyleSasabuneCompact) : _sasabuneCompact;
+
+        public static string? FindMarkdownStyleName(Style style)
+        {
+            for (var s = style; s is not null; s = s.BasedOn)
+            {
+                var rsc = s.Resources;
+                if (rsc is null)
+                    continue;
+
+                if (!rsc.Contains(MarkdownStyleNameKey))
+                    continue;
+
+                if (rsc[MarkdownStyleNameKey] is string name)
+                    return name;
+
+                return null;
+            }
+            return null;
+        }
     }
 }
