@@ -30,7 +30,8 @@ jobs:
       run: |
         .github/my_scripts/versioning.ps1 `
           -PropsPath "./Directory.Build.props" `
-          -RepresentativePackageId "MdXaml"
+          -RepresentativePackageId "MdXaml" `
+            >> $GITHUB_OUTPUT
 
     - name: Commit updated props
       if: steps.versioning.outputs.package_version != ''
@@ -80,4 +81,4 @@ jobs:
       run: dotnet pack  -c Release --no-build -o artifacts/packs -p:PackageVersion=${{ steps.versioning.outputs.package_version }}
 
     - name: Push to NuGet
-      run: dotnet nuget push "artifacts/packs/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+      run: dotnet nuget push ".\artifacts\packs\*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
