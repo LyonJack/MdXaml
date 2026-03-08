@@ -11,9 +11,18 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v4
       with:
-          submodules: 'true'
+        fetch-depth: 0
+
+
+    - name: Cache Visual Studio package cache
+      uses: actions/cache@v4
+      with:
+        path: C:\ProgramData\Microsoft\VisualStudio\Packages
+        key: vs2022-packages-net461-${{ runner.os }}
+
     - name: Install component on windows 2022
       shell: pwsh
       run: |
@@ -24,7 +33,7 @@ jobs:
         )
         [string]$workloadArgs = $componentsToAdd | ForEach-Object {" --add " +  $_}
 
-        $Arguments = ('modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
+        $Arguments = ('modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart')
         $process = Start-Process -FilePath vs_installer.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
 
         if ($process.ExitCode -eq 0)
@@ -36,6 +45,8 @@ jobs:
             Write-Host "components were not installed"
             exit 1
         }
+
+
     - name: Clean
       run: dotnet clean
     - name: Restore
