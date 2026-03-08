@@ -25,12 +25,17 @@ function Test-NuGetVersionExists {
         [string] $Version
     )
 
-    $url = "https://api.nuget.org/v3-flatcontainer/$PackageId/index.json"
+    $lowerId = $PackageId.ToLower()
+    $url = "https://api.nuget.org/v3-flatcontainer/$lowerId/index.json"
 
+    Write-Host "Check $PackageId version list"
+    Write-Host "  -> $url"
     try {
         $response = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 10
     }
     catch {
+        Write-Host "TypeName: $($_.Exception.GetType().FullName)"
+        Write-Host "Message:  $($_.Exception.Message)"
         Write-Error "Connection Failed: NuGet.org"
         exit 1
     }
@@ -168,4 +173,4 @@ $timestamp = (Get-Date).ToUniversalTime().ToString("yyyyMMddHHmm")
 $preVersion = "$newVersion-pre$timestamp"
 Write-Host "New test version: $preVersion"
 
-Write-Output "::set-output name=package_version::$preVersion"
+Write-Output "$preVersion"

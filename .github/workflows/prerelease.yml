@@ -10,7 +10,7 @@ on:
 
 jobs:
   prerelease:
-    if: github.event.pull_request.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
 
     runs-on: windows-latest
 
@@ -24,6 +24,24 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Run versioning script
+      id: versioning
+      shell: pwsh
+      run: |
+        $version = ./.github/my_scripts/versioning.ps1 -PropsPath "./Directory.Build.props" -RepresentativePackageId "MdXaml";
+        echo "package_version=$version" >> $env:GITHUB_OUTPUT
+
+    - name: Echo package version
+      run: echo ${{ steps.versioning.outputs.package_version }}
+
+    - name: Commit updated props
+      if: steps.versioning.outputs.package_version != ''
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add Directory.Build.props
+        git commit -m "Update PackageVersion by CI"
+        git push origin master
 
     - name: Cache Visual Studio package cache
       uses: actions/cache@v4
@@ -54,32 +72,14 @@ jobs:
             exit 1
         }
 
+    - name: Restore
+      run: dotnet restore
 
-      - name: Run versioning script
-        id: versioning
-        shell: pwsh
-        run: |
-          .github/my_scripts/versioning.ps1 `
-            -PropsPath "./Directory.Build.props" `
-            -RepresentativePackageId "MdXaml"
+    - name: Build
+      run: dotnet build -c Release --no-restore -p:PackageVersion=${{ steps.versioning.outputs.package_version }}
 
-      - name: Commit updated props
-        if: steps.versioning.outputs.package_version != ''
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Directory.Build.props
-          git commit -m "Update PackageVersion by CI"
-          git push origin master
+    - name: Pack (PreRelease)
+      run: dotnet pack  -c Release --no-build -o artifacts/packs -p:PackageVersion=${{ steps.versioning.outputs.package_version }}
 
-      - name: Restore
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build -c Release --no-restore -p:PackageVersion=${{ steps.versioning.outputs.package_version }}
-
-      - name: Pack (PreRelease)
-        run: dotnet pack  -c Release --no-build -o artifacts/packs -p:PackageVersion=${{ steps.versioning.outputs.package_version }}
-
-      - name: Push to NuGet
-        run: dotnet nuget push "artifacts/packs/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+    - name: Push to NuGet
+      run: dotnet nuget push ".\artifacts\packs\*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
