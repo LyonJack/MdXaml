@@ -173,4 +173,4 @@ $timestamp = (Get-Date).ToUniversalTime().ToString("yyyyMMddHHmm")
 $preVersion = "$newVersion-pre$timestamp"
 Write-Host "New test version: $preVersion"
 
-Write-Output "::set-output name=package_version::$preVersion"
+Write-Output "package_version=$preVersion"
