@@ -25,7 +25,8 @@ function Test-NuGetVersionExists {
         [string] $Version
     )
 
-    $url = "https://api.nuget.org/v3-flatcontainer/$PackageId/index.json"
+    $lowerId = $PackageId.ToLower()
+    $url = "https://api.nuget.org/v3-flatcontainer/$lowerId/index.json"
 
     Write-Host "Check $PackageId version list"
     Write-Host "  -> $url"
