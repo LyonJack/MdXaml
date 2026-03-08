@@ -28,13 +28,14 @@ function Test-NuGetVersionExists {
     $url = "https://api.nuget.org/v3-flatcontainer/$PackageId/index.json"
 
     Write-Host "Check $PackageId version list"
+    Write-Host "  -> $url"
     try {
         $response = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 10
     }
     catch {
+        Write-Host "TypeName: $($_.Exception.GetType().FullName)"
+        Write-Host "Message:  $($_.Exception.Message)"
         Write-Error "Connection Failed: NuGet.org"
-        Write-Error "TypeName: $($_.Exception.GetType().FullName)"
-        Write-Error "Message:  $($_.Exception.Message)"
         exit 1
     }
 
