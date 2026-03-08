@@ -29,7 +29,10 @@ jobs:
       shell: pwsh
       run: |
         $version = ./.github/my_scripts/versioning.ps1 -PropsPath "./Directory.Build.props" -RepresentativePackageId "MdXaml";
-        echo "package_version=$version" >> $GITHUB_OUTPUT
+        echo "package_version=$version" >> $env:GITHUB_OUTPUT
+
+    - name: Echo package version
+      run: echo ${{ steps.versioning.outputs.package_version }}
 
     - name: Commit updated props
       if: steps.versioning.outputs.package_version != ''
