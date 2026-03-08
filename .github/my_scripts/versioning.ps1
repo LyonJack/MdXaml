@@ -33,7 +33,8 @@ function Test-NuGetVersionExists {
     }
     catch {
         Write-Error "Connection Failed: NuGet.org"
-        Write-Error $($_ | Out-String)
+        Write-Error "TypeName: $($_.Exception.GetType().FullName)"
+        Write-Error "Message:  $($_.Exception.Message)"
         exit 1
     }
 
